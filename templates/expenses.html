@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Expenses{% endblock %}
+{% block page_title %}Expense History{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-heading">All Expenses</h1>
+    <p class="page-sub">{{ expenses | length }} transaction{% if expenses|length != 1 %}s{% endif %} recorded</p>
+  </div>
+  <a href="{{ url_for('add_expense_route') }}" class="btn btn-primary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+    Add Expense
+  </a>
+</div>
+
+<!-- Search / filter bar -->
+<div class="filter-bar">
+  <input type="text" id="searchInput" placeholder="Search expenses…" class="search-input">
+  <select id="categoryFilter" class="filter-select">
+    <option value="">All categories</option>
+    {% set cats = expenses | map(attribute='category') | list | unique | sort %}
+    {% for cat in cats %}
+    <option value="{{ cat }}">{{ cat }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if expenses %}
+<div class="table-card">
+  <table class="data-table" id="expenseTable">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Paid By</th>
+        <th>Amount</th>
+        <th>Per Person</th>
+        <th>Date</th>
+        <th>Participants</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for exp in expenses %}
+      <tr data-category="{{ exp.category }}">
+        <td>
+          <span class="expense-desc">{{ exp.description }}</span>
+        </td>
+        <td>
+          <span class="category-pill cat-{{ exp.category | lower | replace(' ', '-') | replace('&', '') }}">
+            {{ exp.category }}
+          </span>
+        </td>
+        <td>
+          <div class="payer-cell">
+            <div class="avatar-chip xs">
+              {{ exp.payer_name[:2].upper() }}
+            </div>
+            {{ exp.payer_name }}
+          </div>
+        </td>
+        <td class="amount-cell">₹{{ "{:,.2f}".format(exp.amount) }}</td>
+        <td class="muted-cell">
+          ₹{{ "{:,.2f}".format(exp.amount / exp.splits | length) if exp.splits else '—' }}
+        </td>
+        <td class="muted-cell date-cell">{{ exp.created_at[:10] }}</td>
+        <td>
+          <div class="avatar-stack">
+            {% for s in exp.splits[:4] %}
+            <div class="avatar-chip xs tooltip" data-tip="{{ s.user_name }}">
+              {{ s.user_name[:2].upper() }}
+            </div>
+            {% endfor %}
+            {% if exp.splits | length > 4 %}
+            <div class="avatar-chip xs more">+{{ exp.splits | length - 4 }}</div>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">💸</div>
+  <h3>No expenses yet</h3>
+  <p>Start by logging your first shared expense.</p>
+  <a href="{{ url_for('add_expense_route') }}" class="btn btn-primary">Log First Expense</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Live search + category filter
+const searchInput    = document.getElementById('searchInput');
+const categoryFilter = document.getElementById('categoryFilter');
+const rows           = document.querySelectorAll('#expenseTable tbody tr');
+
+function filterTable() {
+  const q   = searchInput.value.toLowerCase();
+  const cat = categoryFilter.value;
+  rows.forEach(row => {
+    const text    = row.textContent.toLowerCase();
+    const rowCat  = row.dataset.category;
+    const matchQ  = !q   || text.includes(q);
+    const matchC  = !cat || rowCat === cat;
+    row.style.display = matchQ && matchC ? '' : 'none';
+  });
+}
+searchInput.addEventListener('input', filterTable);
+categoryFilter.addEventListener('change', filterTable);
+</script>
+{% endblock %}

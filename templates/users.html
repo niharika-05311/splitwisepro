@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}Members{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-heading">Team Members</h1>
+    <p class="page-sub">{{ users | length }} member{% if users|length != 1 %}s{% endif %} in this group</p>
+  </div>
+  <a href="{{ url_for('add_user_route') }}" class="btn btn-primary">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+    Add Member
+  </a>
+</div>
+
+{% if users %}
+<div class="user-grid">
+  {% for user in users %}
+  {% set info = balances.get(user.id|string, balances.get(user.id, {'balance': 0})) %}
+  <div class="user-card">
+    <div class="user-card-top">
+      <div class="user-avatar large">{{ user.avatar }}</div>
+      <div class="user-card-info">
+        <h3 class="user-name">{{ user.name }}</h3>
+        {% if user.email %}<p class="user-email">{{ user.email }}</p>{% endif %}
+        <p class="user-since">Member since {{ user.created_at[:10] }}</p>
+      </div>
+    </div>
+    <div class="user-card-footer">
+      <div class="user-stat">
+        <span class="user-stat-label">Net Balance</span>
+        <span class="user-stat-value {% if info.balance > 0 %}positive{% elif info.balance < 0 %}negative{% else %}neutral{% endif %}">
+          {% if info.balance > 0 %}Gets back{% elif info.balance < 0 %}Owes{% else %}Settled{% endif %}
+          {% if info.balance != 0 %} ₹{{ "{:,.2f}".format(info.balance | abs) }}{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <h3>No members yet</h3>
+  <p>Add your first team member to get started.</p>
+  <a href="{{ url_for('add_user_route') }}" class="btn btn-primary">Add First Member</a>
+</div>
+{% endif %}
+{% endblock %}

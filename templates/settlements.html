@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Settlements{% endblock %}
+{% block page_title %}Settlements{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-heading">Settlement Plan</h1>
+    <p class="page-sub">Minimum transactions to settle all debts</p>
+  </div>
+  {% if settlements %}
+  <span class="badge badge-amber">{{ settlements | length }} payment{% if settlements|length!=1%}s{% endif %} needed</span>
+  {% else %}
+  <span class="badge badge-green">All settled ✓</span>
+  {% endif %}
+</div>
+
+<!-- Algorithm explainer banner -->
+<div class="info-banner">
+  <div class="info-banner-icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+  <div>
+    <strong>How it works:</strong>
+    Each person's net balance is computed (amount paid minus their fair share). The greedy algorithm then pairs the largest debtor with the largest creditor to minimise the total number of transfers.
+  </div>
+</div>
+
+<div class="two-col-grid">
+
+  <!-- Settlements list -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Payments to Make</h3>
+    </div>
+
+    {% if settlements %}
+    <div class="settlement-cards">
+      {% for s in settlements %}
+      <div class="settlement-card-item">
+        <div class="sc-person from">
+          <div class="avatar-chip large red">{{ s.from_name[:2].upper() }}</div>
+          <span class="sc-name">{{ s.from_name }}</span>
+          <span class="sc-role">Pays</span>
+        </div>
+
+        <div class="sc-middle">
+          <div class="sc-amount">₹{{ "{:,.2f}".format(s.amount) }}</div>
+          <div class="sc-arrow">→</div>
+        </div>
+
+        <div class="sc-person to">
+          <div class="avatar-chip large green">{{ s.to_name[:2].upper() }}</div>
+          <span class="sc-name">{{ s.to_name }}</span>
+          <span class="sc-role">Receives</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state-sm">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="var(--c-accent)" stroke-width="1.5"/><polyline points="22 4 12 14.01 9 11.01" stroke="var(--c-accent)" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <p><strong>All settled up!</strong></p>
+      <p class="muted">No payments required.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Net Balances -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Individual Balances</h3>
+    </div>
+    <div class="balance-detail-list">
+      {% for uid, info in balances.items() %}
+      <div class="balance-detail-row">
+        <div class="avatar-chip">{{ info.name[:2].upper() }}</div>
+        <div class="balance-detail-info">
+          <span class="bd-name">{{ info.name }}</span>
+          <span class="bd-desc">
+            {% if info.balance > 0.01 %}
+              Is owed money
+            {% elif info.balance < -0.01 %}
+              Needs to pay
+            {% else %}
+              All square
+            {% endif %}
+          </span>
+        </div>
+        <div class="bd-amount {% if info.balance > 0 %}positive{% elif info.balance < 0 %}negative{% else %}neutral{% endif %}">
+          {% if info.balance > 0 %}+{% endif %}₹{{ "{:,.2f}".format(info.balance) }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Balance bar chart -->
+    <div class="chart-wrap mt-4">
+      <canvas id="balanceChart"></canvas>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const balanceData = {{ balances | tojson }};
+initBalanceChart(balanceData);
+</script>
+{% endblock %}
